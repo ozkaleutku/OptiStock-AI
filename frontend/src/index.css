@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+
+/* Make clickable elements show pointer cursor */
+button, select {
+  cursor: pointer;
+}

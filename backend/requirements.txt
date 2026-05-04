@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+pandas
+psycopg2
+lightgbm
+prophet
+python-dateutil
+python-dotenv
+pydantic
+scikit-learn
+plotly
