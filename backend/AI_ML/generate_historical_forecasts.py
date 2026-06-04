@@ -10,10 +10,6 @@ logging.getLogger('cmdstanpy').setLevel(logging.WARNING)
 logging.getLogger('prophet').setLevel(logging.WARNING)
 
 def run_historical_step(item_id, target_year):
-    """
-    Belirli bir yil icin (hedef yil), o yildan onceki verileri kullanarak tahmin uretir.
-    """
-    # Hedef yildan onceki tum verileri cek
     query = """
     SELECT date_trunc('month', date) as ds, SUM(amount) as y 
     FROM sales_out_history 
@@ -30,15 +26,24 @@ def run_historical_step(item_id, target_year):
     df['ds'] = pd.to_datetime(df['ds']).dt.tz_localize(None)
 
     try:
+
+
+
+
+        # parameters you can change if you want
         model = Prophet(
             yearly_seasonality=True,
             weekly_seasonality=False,
             daily_seasonality=False,
             changepoint_prior_scale=0.01 
         )
+
+
+
+
         model.fit(df)
         
-        # Sadece o hedef yil icin 12 aylik periyot olustur
+        # just for that year 12 months
         start_date = datetime(target_year, 1, 1)
         future_dates = pd.date_range(start=start_date, periods=12, freq='MS')
         future = pd.DataFrame({'ds': future_dates})
@@ -50,7 +55,7 @@ def run_historical_step(item_id, target_year):
             pred_value = max(0, row['yhat'])
             lower = max(0, row['yhat_lower'])
             upper = max(0, row['yhat_upper'])
-            results.append((item_id, row['ds'].date(), round(pred_value, 5), round(lower, 5), round(upper, 5), True)) # is_approved=True
+            results.append((item_id, row['ds'].date(), round(pred_value, 5), round(lower, 5), round(upper, 5), True)) 
             
         return results
 
@@ -59,15 +64,19 @@ def run_historical_step(item_id, target_year):
         return []
 
 def generate_all_history():
-    # 0. Mevcut gecmisi temizle
+    # clear existing historical forecasts
     print("Clearing existing historical forecasts...")
     run_command("TRUNCATE TABLE prophet_table_history")
 
-    # 1. Tum urunleri al
+    # get all items
     items_df = run_query("SELECT DISTINCT item_id FROM sales_out_history")
     items = items_df['item_id'].tolist()
     
-    years = [2021, 2022, 2023, 2024, 2025, 2026]
+    # get year range dynamically
+    year_range_df = run_query("SELECT EXTRACT(YEAR FROM MIN(date))::int AS min_year, EXTRACT(YEAR FROM MAX(date))::int AS max_year FROM sales_out_history")
+    min_year = int(year_range_df['min_year'].iloc[0])
+    max_year = max(int(year_range_df['max_year'].iloc[0]), datetime.now().year)
+    years = list(range(min_year, max_year + 1))
     
     print(f"Starting historical forecast generation for {len(items)} items over years {years}...")
     
@@ -89,7 +98,7 @@ def generate_all_history():
 
     print(f"\nFinalizing... Total monthly forecast records generated: {len(all_results)}")
     
-    # 2. History tablosuna kaydet
+    # save to history table
     insert_query = """
     INSERT INTO prophet_table_history (item_id, date, amount, yhat_lower, yhat_upper, is_approved)
     VALUES (%s, %s, %s, %s, %s, %s)

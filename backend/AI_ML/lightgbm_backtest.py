@@ -6,7 +6,6 @@ import sys
 import os
 from dateutil.relativedelta import relativedelta
 
-# Add workspace root to path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from backend.database.db_helper import run_query, run_command, run_command_batch
@@ -118,13 +117,13 @@ def main():
 
 
 
-        # 3. Model (We use higher n_estimators for lower learning rate)
+        # 3. Model (Parameters can be changed if you change here go change lightgbm_algo.py too)
         model = lgb.LGBMRegressor(
             objective='quantile', alpha=0.85,
             n_estimators=3000, learning_rate=0.03, num_leaves=31,
             verbose=-1, random_state=42
         )
-        #döndür değiştirebilsinler
+        
 
 
 
